@@ -1,4 +1,5 @@
 import random
+import math
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -6,11 +7,8 @@ from tqdm import tqdm
 class Person:
     def __init__(self, sex):
         self.sex = sex
-        self.lifetime = int(random.normalvariate(80, 5))
         self.age = 0
         self.partner = None
-        self.parents = []
-        self.siblings = []
         self.children = []
         self.copulated = False
 
@@ -40,6 +38,9 @@ class Person:
             else:
                 return 0.1  # Significant decline with age
 
+    def mortality(self, a=0.005, b=1, c=0.0001, d=0.0001, e=0.077):
+        return a * math.exp(- b * self.age) + c + d * math.exp(e * self.age)
+
 
 def conception_prob(fertility, n_children):
     return min(fertility * 0.25 * 12, 1) / (n_children + 1)
@@ -53,8 +54,11 @@ if __name__ == '__main__':
         population.append(Person('m'))
         population.append(Person('f'))
 
+    init_ages = []
     for p in population:
-        p.age = random.randint(0, p.lifetime)
+        age = max(int(random.normalvariate(30, 20)), 0)
+        p.age = age
+        init_ages.append(age)
 
     pop_sizes = []
     child_bearing_ages = []
@@ -91,20 +95,36 @@ if __name__ == '__main__':
 
         deaths = []
         for p in population:
-            p.age += 1
-            p.copulated = False
-            if p.age >= p.lifetime:
+            if random.random() < p.mortality():
                 if p.partner:
                     p.partner.partner = None
                 deaths.append(p)
+            else:
+                p.age += 1
+                p.copulated = False
 
         for p in deaths:
             population.remove(p)
 
+    final_ages = []
+    for p in population:
+        final_ages.append(p.age)
+
     plt.figure()
     plt.plot(pop_sizes)
+    plt.title('Population')
+    plt.xlabel('year')
+    plt.ylabel('population')
     plt.show()
 
     plt.figure()
     plt.hist(child_bearing_ages, bins=20)
+    plt.title('Childbearing Age')
+    plt.show()
+
+    plt.figure()
+    plt.hist(init_ages, bins=20, label='Initial', density=True)
+    plt.hist(final_ages, bins=20, alpha=0.5, label='Final', density=True)
+    plt.title('Age distribution')
+    plt.legend()
     plt.show()
